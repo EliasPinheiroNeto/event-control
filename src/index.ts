@@ -1,6 +1,7 @@
+import 'dotenv/config'
 import App from "./App";
 import UserController from "./controllers/UserController";
 
 new App([
     new UserController()
-], 3000)
+], process.env.API_PORT)
