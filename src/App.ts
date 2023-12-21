@@ -2,7 +2,7 @@ import express, { Express } from 'express';
 import Controller from './controllers/Controller';
 
 export default class App {
-    express: Express;
+    private express: Express;
 
     constructor(controllers: Controller[], port: number) {
         this.express = express()

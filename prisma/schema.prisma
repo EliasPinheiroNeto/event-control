@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int    @id @default(autoincrement())
+  firstName  String @map("first_name") @db.VarChar(100)
+  secondName String @map("second_name") @db.VarChar(100)
+  email      String @unique @db.VarChar(150)
+  password   String @ignore @db.VarChar(150)
+
+  Event     Event[]
+  UserEvent UserEvent[]
+  Admin     Admin?
+
+  @@map("tbl_user")
+}
+
+model Event {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  capacity  Int
+  tickets   Int
+  eventDate DateTime @default(now()) @map("event_date")
+  idCreator Int      @map("id_creator")
+  User      User     @relation(fields: [idCreator], references: [id])
+
+  UserEvent UserEvent[]
+
+  @@map("tbl_event")
+}
+
+model UserEvent {
+  idUser  Int
+  User    User  @relation(fields: [idUser], references: [id])
+  idEvent Int
+  Event   Event @relation(fields: [idEvent], references: [id])
+
+  @@id([idUser, idEvent])
+  @@map("tbl_user_event")
+}
+
+model Admin {
+  idUser Int  @unique @map("id_user")
+  User   User @relation(fields: [idUser], references: [id])
+
+  @@map("tbl_admin")
+}
