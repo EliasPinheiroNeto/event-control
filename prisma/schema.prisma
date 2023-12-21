@@ -15,7 +15,7 @@ model User {
   firstName  String @map("first_name") @db.VarChar(100)
   secondName String @map("second_name") @db.VarChar(100)
   email      String @unique @db.VarChar(150)
-  password   String @ignore @db.VarChar(150)
+  password   String @db.VarChar(150)
 
   Event     Event[]
   UserEvent UserEvent[]
