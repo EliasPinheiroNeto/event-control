@@ -13,6 +13,7 @@ export default class UserController extends Controller {
         this.router.get("/users", this.getUsers)
         this.router.get("/users/:id", this.getUserById)
         this.router.delete("/users/:id/delete", this.deleteUser)
+        this.router.patch("/users/:id/edit", this.updateUser)
         this.router.post("/users/new", UserValidator.createUser, this.createUser)
     }
 
@@ -78,5 +79,34 @@ export default class UserController extends Controller {
         })
 
         res.send(user)
+    }
+
+    private async updateUser(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+
+        console.log("TODO: validation token")
+
+        if (isNaN(id)) {
+            return res.status(400).send({ error: "user id must be a number. /users/:id[number]/delete" })
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id },
+            select: { id: true, firstName: true, secondName: true, email: true }
+        })
+
+        if (!user) {
+            return res.status(404).send({ error: "User not found" })
+        }
+
+        const result = await prisma.user.update({
+            where: { id },
+            data: {
+                firstName: "Bowser"
+            },
+            select: { id: true, firstName: true, secondName: true, email: true }
+        })
+
+        res.send(result)
     }
 }
