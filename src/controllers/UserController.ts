@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import Controller from "./Controller";
-import UserValidator, { UserSchema } from "../middlewares/UserValidator";
+import { UserRequests } from "../types/UserRequests";
 import prisma from "../prisma/prismaClient";
+import UserRequestValidator from "../middlewares/UserRequestValidator";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 export default class UserController extends Controller {
     constructor() {
@@ -10,11 +12,13 @@ export default class UserController extends Controller {
     }
 
     private initializeRoutes() {
+        const userRequestValidator = new UserRequestValidator()
+
         this.router.get("/users", this.getUsers)
-        this.router.get("/users/:id", this.getUserById)
-        this.router.delete("/users/:id/delete", this.deleteUser)
-        this.router.patch("/users/:id/edit", this.updateUser)
-        this.router.post("/users/new", UserValidator.createUser, this.createUser)
+        this.router.get("/users/:id", userRequestValidator.userIdParam, this.getUserById)
+        this.router.delete("/users/:id/delete", userRequestValidator.userIdParam, this.deleteUser)
+        this.router.patch("/users/:id/edit", userRequestValidator.userIdParam, this.updateUser)
+        this.router.post("/users/new", userRequestValidator.createUserBody, this.createUser)
     }
 
     private async getUsers(req: Request, res: Response) {
@@ -27,16 +31,61 @@ export default class UserController extends Controller {
         res.send(users)
     }
 
-    private async getUserById(req: Request, res: Response) {
+    private async getUserById(req: Request<any>, res: Response) {
         const id = Number.parseInt(req.params.id)
-
-        if (isNaN(id)) {
-            return res.status(400).send({ error: "user id must be a number. /users/:id[number]" })
-        }
 
         const user = await prisma.user.findUnique({
             where: { id },
             select: { id: true, firstName: true, secondName: true, email: true }
+        })
+
+        if (!user) {
+            return res.status(404).send({ error: "User not found" })
+        }
+
+        res.send(user)
+    }
+
+    private async deleteUser(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+        console.log("TODO: validation token")
+
+        const user = await prisma.user.delete({
+            where: { id }
+        }).catch(err => {
+            if (err instanceof PrismaClientKnownRequestError) {
+                return console.log({ error: err.message, route: "/users/:id/delete" })
+            }
+
+            console.log({ error: "unknow", route: "/users/:id/delete" })
+        })
+
+        if (!user) {
+            return res.status(404).send({ error: "User not found" })
+        }
+
+        res.send(user)
+    }
+
+    private async updateUser(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+        const body: UserRequests.UpdateUserBody = req.body
+        console.log("TODO: validation token")
+        console.log(body)
+
+        const user = await prisma.user.update({
+            where: { id },
+            data: {
+                firstName: body.firstName,
+                secondName: body.secondName
+            },
+            select: { id: true, firstName: true, secondName: true, email: true }
+        }).catch(err => {
+            if (err instanceof PrismaClientKnownRequestError) {
+                return console.log({ error: err.message, route: "/users/:id/edit" })
+            }
+
+            console.log({ error: "unknow", route: "/users/:id/edit" })
         })
 
         if (!user) {
@@ -47,66 +96,13 @@ export default class UserController extends Controller {
     }
 
     private async createUser(req: Request, res: Response) {
-        const body: UserSchema.create = req.body
+        const body: UserRequests.CreateUserBody = req.body
 
         const user = await prisma.user.create({
-            data: body
+            data: body,
+            select: { id: true, firstName: true, secondName: true, email: true }
         })
 
         res.send({ user })
-    }
-
-    private async deleteUser(req: Request, res: Response) {
-        const id = Number.parseInt(req.params.id)
-
-        console.log("TODO: validation token")
-
-        if (isNaN(id)) {
-            return res.status(400).send({ error: "user id must be a number. /users/:id[number]/delete" })
-        }
-
-        const user = await prisma.user.findUnique({
-            where: { id },
-            select: { id: true, firstName: true, secondName: true, email: true }
-        })
-
-        if (!user) {
-            return res.status(404).send({ error: "User not found" })
-        }
-
-        await prisma.user.delete({
-            where: { id }
-        })
-
-        res.send(user)
-    }
-
-    private async updateUser(req: Request, res: Response) {
-        const id = Number.parseInt(req.params.id)
-
-        console.log("TODO: validation token")
-
-        if (isNaN(id)) {
-            return res.status(400).send({ error: "user id must be a number. /users/:id[number]/delete" })
-        }
-
-        const user = await prisma.user.findUnique({
-            where: { id },
-            select: { id: true, firstName: true, secondName: true, email: true }
-        })
-
-        if (!user) {
-            return res.status(404).send({ error: "User not found" })
-        }
-
-        const result = await prisma.user.update({
-            where: { id },
-            data: {
-                firstName: "Bowser"
-            },
-            select: { id: true, firstName: true, secondName: true, email: true }
-        })
-
-        res.send(result)
     }
 }
