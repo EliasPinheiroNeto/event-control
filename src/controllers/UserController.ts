@@ -4,6 +4,8 @@ import { UserRequests } from "../types/UserRequests";
 import prisma from "../prisma/prismaClient";
 import UserRequestValidator from "../middlewares/UserRequestValidator";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
 
 export default class UserController extends Controller {
     constructor() {
@@ -17,8 +19,9 @@ export default class UserController extends Controller {
         this.router.get("/users", this.getUsers)
         this.router.get("/users/:id", userRequestValidator.userIdParam, this.getUserById)
         this.router.delete("/users/:id/delete", userRequestValidator.userIdParam, this.deleteUser)
-        this.router.patch("/users/:id/edit", userRequestValidator.userIdParam, this.updateUser)
+        this.router.patch("/users/:id/edit", userRequestValidator.updateUserBody, userRequestValidator.userIdParam, this.updateUser)
         this.router.post("/users/new", userRequestValidator.createUserBody, this.createUser)
+        this.router.post("/users/login", this.userLogin)
     }
 
     private async getUsers(req: Request, res: Response) {
@@ -98,11 +101,39 @@ export default class UserController extends Controller {
     private async createUser(req: Request, res: Response) {
         const body: UserRequests.CreateUserBody = req.body
 
+        body.password = bcrypt.hashSync(body.password, 10)
+        console.log(body.password)
+
         const user = await prisma.user.create({
             data: body,
             select: { id: true, firstName: true, secondName: true, email: true }
         })
 
         res.send({ user })
+    }
+
+    private async userLogin(req: Request, res: Response) {
+        const body: UserRequests.UserLoginBody = req.body
+
+        const user = await prisma.user.findUnique({
+            where: {
+                email: body.email
+            }
+        })
+
+        if (!user) {
+            return res.status(400).send({ error: "email or password invalid" })
+        }
+
+        if (!bcrypt.compareSync(body.password, user.password)) {
+            return res.status(400).send({ error: "email or password invalid" })
+        }
+
+        const token = jwt.sign({ id: user.id, email: user.email, firstName: user.firstName }, process.env.SECRET, {
+            expiresIn: "1h",
+
+        })
+
+        res.send({ user, token })
     }
 }

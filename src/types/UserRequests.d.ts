@@ -10,4 +10,9 @@ export namespace UserRequests {
         firstName?: string
         secondName?: string
     }
+
+    type UserLoginBody = {
+        email: string
+        password: string
+    }
 }
