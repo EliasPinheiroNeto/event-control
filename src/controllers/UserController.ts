@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
-import Controller from "./Controller";
-import { UserRequests } from "../types/UserRequests";
 import prisma from "../prisma/prismaClient";
-import UserRequestValidator from "../middlewares/UserRequestValidator";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
+
+import Controller from "./Controller";
 import AuthService from "../auth/AuthService";
+import { UserRequests } from "../types/UserRequests";
+import UserRequestValidator from "../middlewares/UserRequestValidator";
 
 export default class UserController extends Controller {
     constructor() {
