@@ -6,6 +6,7 @@ import UserRequestValidator from "../middlewares/UserRequestValidator";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
+import AuthService from "../auth/AuthService";
 
 export default class UserController extends Controller {
     constructor() {
@@ -15,11 +16,12 @@ export default class UserController extends Controller {
 
     private initializeRoutes() {
         const userRequestValidator = new UserRequestValidator()
+        const authService = new AuthService()
 
         this.router.get("/users", this.getUsers)
         this.router.get("/users/:id", userRequestValidator.userIdParam, this.getUserById)
         this.router.delete("/users/:id/delete", userRequestValidator.userIdParam, this.deleteUser)
-        this.router.patch("/users/:id/edit", userRequestValidator.updateUserBody, userRequestValidator.userIdParam, this.updateUser)
+        this.router.patch("/users/:id/edit", authService.authenticateUser, userRequestValidator.updateUserBody, userRequestValidator.userIdParam, this.updateUser)
         this.router.post("/users/new", userRequestValidator.createUserBody, this.createUser)
         this.router.post("/users/login", this.userLogin)
     }
@@ -73,8 +75,6 @@ export default class UserController extends Controller {
     private async updateUser(req: Request, res: Response) {
         const id = Number.parseInt(req.params.id)
         const body: UserRequests.UpdateUserBody = req.body
-        console.log("TODO: validation token")
-        console.log(body)
 
         const user = await prisma.user.update({
             where: { id },
