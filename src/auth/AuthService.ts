@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import jwt, { JsonWebTokenError } from 'jsonwebtoken'
+import jwt, { JsonWebTokenError, JwtPayload } from 'jsonwebtoken'
 
 import { UserToken } from "../schema/user.schema";
 
@@ -65,8 +65,7 @@ export default class AuthService {
         }
 
         try {
-            const result: any = jwt.verify(parts[1], process.env.SECRET)
-            return result
+            return jwt.verify(parts[1], process.env.SECRET) as any
         } catch (err) {
             if (err instanceof JsonWebTokenError) {
                 console.log(err)

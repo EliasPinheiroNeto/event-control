@@ -83,19 +83,7 @@ export default class UserController extends Controller {
                 secondName: body.secondName
             },
             select: { id: true, firstName: true, secondName: true, email: true }
-        }).catch(err => {
-            if (err instanceof PrismaClientKnownRequestError) {
-                console.log({ error: err.message, route: "/users/:id/edit" })
-                return res.status(400).send()
-            }
-
-            console.log({ error: "unknow", route: "/users/:id/edit" })
-            return res.status(400).send()
         })
-
-        if (!user) {
-            return res.status(404).send()
-        }
 
         res.send(user)
     }
@@ -122,11 +110,7 @@ export default class UserController extends Controller {
             }
         })
 
-        if (!user) {
-            return res.status(400).send({ error: "email or password invalid" })
-        }
-
-        if (!bcrypt.compareSync(body.password, user.password)) {
+        if (!user || !bcrypt.compareSync(body.password, user.password)) {
             return res.status(400).send({ error: "email or password invalid" })
         }
 
