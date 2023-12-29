@@ -54,10 +54,13 @@ export default class AuthService {
             //TODO: type safety
             const result: any = jwt.verify(parts[1], process.env.SECRET)
 
+            //.........
+
             if (id != result.id) {
                 return res.status(401).send({ error: "token invalid" })
             }
 
+            next()
         } catch (err) {
             if (err instanceof JsonWebTokenError) {
                 return res.status(401).send({ error: "token invalid" })
@@ -65,7 +68,5 @@ export default class AuthService {
             console.log({ error: "token validation error", route: req.url })
             return res.status(401).send({ error: "token validation error" })
         }
-
-        next()
     }
 }

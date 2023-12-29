@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
-import prisma from "../prisma/prismaClient";
+import prisma from "../util/prismaClient";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 
 import Controller from "./Controller";
 import AuthService from "../auth/AuthService";
-import { UserRequests } from "../types/UserRequests";
-import UserRequestValidator from "../middlewares/UserRequestValidator";
+import { RequestValidator } from "../middlewares/RequestValidator";
+import { CreateUserInput, UpdateUserInput, UserLoginInput, createUserSchema, updateUserSchema, userLoginSchema } from "../schema/user.schema";
 
 export default class UserController extends Controller {
     constructor() {
@@ -16,15 +16,26 @@ export default class UserController extends Controller {
     }
 
     private initializeRoutes() {
-        const userRequestValidator = new UserRequestValidator()
-        const authService = new AuthService()
+        const v = new RequestValidator()
+        const auth = new AuthService()
 
-        this.router.get("/users", this.getUsers)
-        this.router.get("/users/:id", userRequestValidator.userIdParam, this.getUserById)
-        this.router.delete("/users/:id/delete", userRequestValidator.userIdParam, this.deleteUser)
-        this.router.patch("/users/:id/edit", authService.authenticateUser, userRequestValidator.updateUserBody, userRequestValidator.userIdParam, this.updateUser)
-        this.router.post("/users/new", userRequestValidator.createUserBody, this.createUser)
-        this.router.post("/users/login", this.userLogin)
+        this.router.get("/users",
+            this.getUsers)
+        this.router.get("/users/:id",
+            [v.requireUser()],
+            this.getUserById)
+        this.router.delete("/users/:id/delete",
+            [v.requireUser(), auth.authenticateUser],
+            this.deleteUser)
+        this.router.patch("/users/:id/edit",
+            [v.requireUser(), auth.authenticateUser, v.validate(updateUserSchema)],
+            this.updateUser)
+        this.router.post("/users/new",
+            [v.validate(createUserSchema)],
+            this.createUser)
+        this.router.post("/users/login",
+            [v.validate(userLoginSchema)],
+            this.userLogin)
     }
 
     private async getUsers(req: Request, res: Response) {
@@ -46,7 +57,7 @@ export default class UserController extends Controller {
         })
 
         if (!user) {
-            return res.status(404).send({ error: "User not found" })
+            return res.status(404).send()
         }
 
         res.send(user)
@@ -54,28 +65,17 @@ export default class UserController extends Controller {
 
     private async deleteUser(req: Request, res: Response) {
         const id = Number.parseInt(req.params.id)
-        console.log("TODO: validation token")
 
         const user = await prisma.user.delete({
             where: { id }
-        }).catch(err => {
-            if (err instanceof PrismaClientKnownRequestError) {
-                return console.log({ error: err.message, route: "/users/:id/delete" })
-            }
-
-            console.log({ error: "unknow", route: "/users/:id/delete" })
         })
-
-        if (!user) {
-            return res.status(404).send({ error: "User not found" })
-        }
 
         res.send(user)
     }
 
     private async updateUser(req: Request, res: Response) {
         const id = Number.parseInt(req.params.id)
-        const body: UserRequests.UpdateUserBody = req.body
+        const body: UpdateUserInput = req.body
 
         const user = await prisma.user.update({
             where: { id },
@@ -86,24 +86,24 @@ export default class UserController extends Controller {
             select: { id: true, firstName: true, secondName: true, email: true }
         }).catch(err => {
             if (err instanceof PrismaClientKnownRequestError) {
-                return console.log({ error: err.message, route: "/users/:id/edit" })
+                console.log({ error: err.message, route: "/users/:id/edit" })
+                return res.status(400).send()
             }
 
             console.log({ error: "unknow", route: "/users/:id/edit" })
+            return res.status(400).send()
         })
 
         if (!user) {
-            return res.status(404).send({ error: "User not found" })
+            return res.status(404).send()
         }
 
         res.send(user)
     }
 
     private async createUser(req: Request, res: Response) {
-        const body: UserRequests.CreateUserBody = req.body
-
+        const body: CreateUserInput = req.body
         body.password = bcrypt.hashSync(body.password, 10)
-        console.log(body.password)
 
         const user = await prisma.user.create({
             data: body,
@@ -114,7 +114,7 @@ export default class UserController extends Controller {
     }
 
     private async userLogin(req: Request, res: Response) {
-        const body: UserRequests.UserLoginBody = req.body
+        const body: UserLoginInput = req.body
 
         const user = await prisma.user.findUnique({
             where: {
@@ -132,7 +132,6 @@ export default class UserController extends Controller {
 
         const token = jwt.sign({ id: user.id, email: user.email, firstName: user.firstName }, process.env.SECRET, {
             expiresIn: "1h",
-
         })
 
         res.send({ user, token })
