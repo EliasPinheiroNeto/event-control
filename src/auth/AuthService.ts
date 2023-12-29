@@ -1,7 +1,17 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { JsonWebTokenError } from 'jsonwebtoken'
 
+import { UserToken } from "../schema/user.schema";
+
 export default class AuthService {
+    private static tokenValidity = "1h"
+
+    public generateUserToken(payload: UserToken) {
+        return jwt.sign(payload, process.env.SECRET, {
+            expiresIn: AuthService.tokenValidity,
+        })
+    }
+
     public authenticate() {
         const validateToken = this.validateToken
         return function (req: Request, res: Response, next: NextFunction) {

@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../util/prismaClient";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 
 import Controller from "./Controller";
@@ -115,6 +114,7 @@ export default class UserController extends Controller {
 
     private async userLogin(req: Request, res: Response) {
         const body: UserLoginInput = req.body
+        const auth = new AuthService()
 
         const user = await prisma.user.findUnique({
             where: {
@@ -130,9 +130,7 @@ export default class UserController extends Controller {
             return res.status(400).send({ error: "email or password invalid" })
         }
 
-        const token = jwt.sign({ id: user.id, email: user.email, firstName: user.firstName }, process.env.SECRET, {
-            expiresIn: "1h",
-        })
+        const token = auth.generateUserToken({ id: user.id, email: user.email, firstName: user.firstName })
 
         res.send({ user, token })
     }

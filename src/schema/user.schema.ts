@@ -17,7 +17,14 @@ export const userLoginSchema = z.object({
     password: z.string().min(8).max(150)
 })
 
+export const userTokenSchema = z.object({
+    id: z.number(),
+    email: z.string().email(),
+    firstName: z.string()
+}).strict()
+
 
 export type CreateUserInput = z.infer<typeof createUserSchema>
 export type UpdateUserInput = z.infer<typeof updateUserSchema>
 export type UserLoginInput = z.infer<typeof userLoginSchema>
+export type UserToken = z.infer<typeof userTokenSchema>
