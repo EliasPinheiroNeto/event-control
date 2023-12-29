@@ -2,71 +2,70 @@ import { NextFunction, Request, Response } from "express";
 import jwt, { JsonWebTokenError } from 'jsonwebtoken'
 
 export default class AuthService {
-    public authenticate(req: Request, res: Response, next: NextFunction) {
-        const token = req.headers.authorization
+    public authenticate() {
+        const validateToken = this.validateToken
+        return function (req: Request, res: Response, next: NextFunction) {
+            const result = validateToken(req, res)
 
-        if (!token) {
-            return res.status(401).send({ error: "no token provided" })
-        }
-
-        const parts = token.split(' ')
-
-        if (parts.length != 2) {
-            return res.status(401).send({ error: "token malformmated" })
-        }
-
-        if (parts[0] != 'Bearer') {
-            return res.status(401).send({ error: "token malformmated" })
-        }
-
-        try {
-            jwt.verify(parts[1], process.env.SECRET)
-        } catch (err) {
-            if (err instanceof JsonWebTokenError) {
-                return res.status(401).send({ error: "token invalid" })
+            if (!result) {
+                return res.status(400).send()
             }
-            console.log({ error: "token validation error", route: req.url })
-            return res.status(401).send({ error: "token validation error" })
-        }
 
-        next()
+            next()
+        }
     }
 
-    public authenticateUser(req: Request, res: Response, next: NextFunction) {
-        const id = Number.parseInt(req.params.id)
-        const token = req.headers.authorization
+    public authenticateUser() {
+        const validateToken = this.validateToken
+        return function (req: Request, res: Response, next: NextFunction) {
+            const result = validateToken(req, res)
 
-        if (!token) {
-            return res.status(401).send({ error: "no token provided" })
-        }
+            if (!result) {
+                return res.status(400).send()
+            }
 
-        const parts = token.split(' ')
-
-        if (parts.length != 2) {
-            return res.status(401).send({ error: "token malformmated" })
-        }
-
-        if (parts[0] != 'Bearer') {
-            return res.status(401).send({ error: "token malformmated" })
-        }
-
-        try {
-            //TODO: type safety
-            const result: any = jwt.verify(parts[1], process.env.SECRET)
-
-            //.........
-
-            if (id != result.id) {
+            if (result.id != req.params.id) {
                 return res.status(401).send({ error: "token invalid" })
             }
 
             next()
+        }
+    }
+
+    // === Private methods ===
+
+    private validateToken(req: Request, res: Response) {
+        const token = req.headers.authorization
+
+        if (!token) {
+            res.status(401).send({ error: "no token provided" })
+            return undefined
+        }
+
+        const parts = token.split(' ')
+
+        if (parts.length != 2) {
+            res.status(401).send({ error: "token malformmated" })
+            return undefined
+        }
+
+        if (parts[0] != 'Bearer') {
+            res.status(401).send({ error: "token malformmated" })
+            return undefined
+        }
+
+        try {
+            const result: any = jwt.verify(parts[1], process.env.SECRET)
+            return result
         } catch (err) {
             if (err instanceof JsonWebTokenError) {
-                return res.status(401).send({ error: "token invalid" })
+                console.log(err)
+                res.status(401).send({ error: "token invalid" })
+                return undefined
             }
             console.log({ error: "token validation error", route: req.url })
-            return res.status(401).send({ error: "token validation error" })
+            res.status(401).send({ error: "token validation error" })
+            return undefined
         }
     }
 }
