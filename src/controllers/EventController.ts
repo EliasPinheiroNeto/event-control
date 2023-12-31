@@ -20,6 +20,10 @@ export default class EventController extends Controller {
             [],
             this.getEvents)
 
+        this.router.get("/events/:id",
+            [v.requireEvent()],
+            this.getEventById)
+
         this.router.post("/events/new",
             [v.validate(createEventSchema), auth.authenticateAdmin()],
             this.createEvent)
@@ -29,6 +33,16 @@ export default class EventController extends Controller {
         const events = await prisma.event.findMany()
 
         res.send(events)
+    }
+
+    private async getEventById(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+
+        const event = await prisma.event.findUnique({
+            where: { id }
+        })
+
+        res.send(event)
     }
 
     private async createEvent(req: Request, res: Response) {

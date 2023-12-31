@@ -65,7 +65,31 @@ export class RequestValidator {
             })
 
             if (!admin) {
-                res.status(404).send({ error: "User not found" })
+                res.status(404).send({ error: "Admin not found" })
+                return
+            }
+
+            next()
+        }
+    }
+
+    public requireEvent() {
+        const checkId = this.checkId
+        return async function (req: Request, res: Response, next: NextFunction) {
+            const id = checkId(req, res)
+
+            if (!id) {
+                res.status(400).send()
+                return
+            }
+
+
+            const event = await prisma.event.findUnique({
+                where: { id }
+            })
+
+            if (!event) {
+                res.status(404).send({ error: "Event not found" })
                 return
             }
 
