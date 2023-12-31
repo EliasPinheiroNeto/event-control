@@ -21,6 +21,10 @@ export default class AdminController extends Controller {
             [auth.authenticateAdmin()],
             this.getAdmins)
 
+        this.router.get("/admins/:id",
+            [v.requireAdmin(), auth.authenticateAdmin()],
+            this.getAdminById)
+
         this.router.post("/admins/add",
             [v.validate(createAdminSchema), auth.authenticateKey],
             this.createAdmin)
@@ -96,6 +100,23 @@ export default class AdminController extends Controller {
         admin.password = "-"
 
         res.send({ admin, token })
+    }
+
+    private async getAdminById(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+
+        const admin = await prisma.admin.findFirst({
+            where: {
+                idUser: id
+            },
+            include: {
+                User: {
+                    select: { id: true, firstName: true, secondName: true, email: true }
+                }
+            }
+        })
+
+        res.send(admin)
     }
 
     private async revokeAdmin(req: Request, res: Response) {
