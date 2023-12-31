@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import jwt, { JsonWebTokenError, JwtPayload } from 'jsonwebtoken'
+import jwt, { JsonWebTokenError } from 'jsonwebtoken'
 
 import { UserToken } from "../schema/user.schema";
 
@@ -40,6 +40,17 @@ export default class AuthService {
 
             next()
         }
+    }
+
+    public authenticateKey(req: Request, res: Response, next: NextFunction) {
+        const key = req.headers['api-key']
+
+        if (!key || key != process.env.API_KEY) {
+            res.status(401).send()
+            return
+        }
+
+        next()
     }
 
     // === Private methods ===

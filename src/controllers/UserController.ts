@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import prisma from "../util/prismaClient";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import bcrypt from 'bcrypt'
 
 import Controller from "./Controller";
@@ -19,6 +18,7 @@ export default class UserController extends Controller {
         const auth = new AuthService()
 
         this.router.get("/users",
+            [],
             this.getUsers)
         this.router.get("/users/:id",
             [v.requireUser()],
@@ -47,7 +47,7 @@ export default class UserController extends Controller {
         res.send(users)
     }
 
-    private async getUserById(req: Request<any>, res: Response) {
+    private async getUserById(req: Request, res: Response) {
         const id = Number.parseInt(req.params.id)
 
         const user = await prisma.user.findUnique({
@@ -97,7 +97,7 @@ export default class UserController extends Controller {
             select: { id: true, firstName: true, secondName: true, email: true }
         })
 
-        res.send({ user })
+        res.status(201).send({ user })
     }
 
     private async userLogin(req: Request, res: Response) {
