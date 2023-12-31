@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
+import bcrypt from 'bcrypt'
 
 import Controller from "./Controller";
 import prisma from "../util/prismaClient";
-import { CreateAdminInput, createAdminSchema } from "../schema/admin.schema";
+import { AdminLoginInput, CreateAdminInput, adminLoginSchema, createAdminSchema } from "../schema/admin.schema";
 import { RequestValidator } from "../middlewares/RequestValidator";
 import AuthService from "../auth/AuthService";
 
@@ -23,6 +24,10 @@ export default class AdminController extends Controller {
         this.router.post("/admins/add",
             [v.validate(createAdminSchema), auth.authenticateKey],
             this.createAdmin)
+
+        this.router.post("/admins/login",
+            [v.validate(adminLoginSchema)],
+            this.adminLogin)
     }
 
     private async getAdmins(req: Request, res: Response) {
@@ -63,5 +68,29 @@ export default class AdminController extends Controller {
 
         res.status(201).send(admin)
         return
+    }
+
+    private async adminLogin(req: Request, res: Response) {
+        const body: AdminLoginInput = req.body
+        const auth = new AuthService()
+
+        const admin = await prisma.user.findUnique({
+            where: {
+                email: body.email,
+                Admin: {
+                    isNot: null
+                }
+            }
+        })
+
+        if (!admin || !bcrypt.compareSync(body.password, admin.password)) {
+            return res.status(400).send({ error: "email or password invalid" })
+        }
+
+        const token = auth.genenateAdminToken({ id: admin.id, email: admin.email, firstName: admin.firstName })
+
+        admin.password = "-"
+
+        res.send({ admin, token })
     }
 }

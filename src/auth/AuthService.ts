@@ -2,11 +2,18 @@ import { NextFunction, Request, Response } from "express";
 import jwt, { JsonWebTokenError } from 'jsonwebtoken'
 
 import { UserToken } from "../schema/user.schema";
+import { AdminToken } from "../schema/admin.schema";
 
 export default class AuthService {
     private static tokenValidity = "1h"
 
     public generateUserToken(payload: UserToken) {
+        return jwt.sign(payload, process.env.SECRET, {
+            expiresIn: AuthService.tokenValidity,
+        })
+    }
+
+    public genenateAdminToken(payload: AdminToken) {
         return jwt.sign(payload, process.env.SECRET, {
             expiresIn: AuthService.tokenValidity,
         })

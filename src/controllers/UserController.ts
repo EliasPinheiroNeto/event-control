@@ -107,7 +107,7 @@ export default class UserController extends Controller {
         const user = await prisma.user.findUnique({
             where: {
                 email: body.email
-            }
+            },
         })
 
         if (!user || !bcrypt.compareSync(body.password, user.password)) {
@@ -115,6 +115,8 @@ export default class UserController extends Controller {
         }
 
         const token = auth.generateUserToken({ id: user.id, email: user.email, firstName: user.firstName })
+
+        user.password = "-"
 
         res.send({ user, token })
     }
