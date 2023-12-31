@@ -7,6 +7,8 @@ import { AdminToken } from "../schema/admin.schema";
 export default class AuthService {
     private static tokenValidity = "1h"
 
+    // === Token generation methods ===
+
     public generateUserToken(payload: UserToken) {
         return jwt.sign(payload, process.env.SECRET, {
             expiresIn: AuthService.tokenValidity,
@@ -19,8 +21,10 @@ export default class AuthService {
         })
     }
 
+    // === Authentication methods ===
+
     public authenticateUser() {
-        const validateToken = this.validateToken
+        const validateToken = this.validateUserToken
         return function (req: Request, res: Response, next: NextFunction) {
             const result = validateToken(req, res)
 
@@ -33,9 +37,9 @@ export default class AuthService {
     }
 
     public authenticateUserOwner() {
-        const validateToken = this.validateToken
+        const validateUserToken = this.validateUserToken
         return function (req: Request, res: Response, next: NextFunction) {
-            const result = validateToken(req, res)
+            const result = validateUserToken(req, res)
 
             if (!result) {
                 return res.status(400).send()
@@ -43,6 +47,20 @@ export default class AuthService {
 
             if (result.id != req.params.id) {
                 return res.status(401).send({ error: "token invalid" })
+            }
+
+            next()
+        }
+    }
+
+    public authenticateAdmin() {
+        const validateAdminToken = this.validateAdminToken
+        return function (req: Request, res: Response, next: NextFunction) {
+            const result = validateAdminToken(req, res)
+
+            if (!result) {
+                res.status(400).send()
+                return
             }
 
             next()
@@ -65,20 +83,6 @@ export default class AuthService {
         }
     }
 
-    public authenticateAdmin() {
-        const validateAdminToken = this.validateAdminToken
-        return function (req: Request, res: Response, next: NextFunction) {
-            const result = validateAdminToken(req, res)
-
-            if (!result) {
-                res.status(400).send()
-                return
-            }
-
-            next()
-        }
-    }
-
     public authenticateKey(req: Request, res: Response, next: NextFunction) {
         const key = req.headers['api-key']
 
@@ -92,71 +96,68 @@ export default class AuthService {
 
     // === Private methods ===
 
-    private validateToken(req: Request, res: Response) {
+    private validateTokenHeader(req: Request, res: Response) {
         const token = req.headers.authorization
 
         if (!token) {
             res.status(401).send({ error: "no token provided" })
-            return undefined
+            return
         }
 
         const parts = token.split(' ')
 
         if (parts.length != 2) {
             res.status(401).send({ error: "token malformmated" })
-            return undefined
+            return
         }
 
         if (parts[0] != 'Bearer') {
             res.status(401).send({ error: "token malformmated" })
-            return undefined
+            return
+        }
+
+        return parts[1]
+    }
+
+    private validateUserToken(req: Request, res: Response) {
+        const token = this.validateTokenHeader(req, res)
+
+        if (!token) {
+            return
         }
 
         try {
-            return jwt.verify(parts[1], process.env.SECRET) as any
+            return jwt.verify(token, process.env.SECRET) as any
         } catch (err) {
             if (err instanceof JsonWebTokenError) {
                 console.log(err)
                 res.status(401).send({ error: "token invalid" })
-                return undefined
+                return
             }
             console.log({ error: "token validation error", route: req.url })
             res.status(401).send({ error: "token validation error" })
-            return undefined
+            return
         }
     }
 
     private validateAdminToken(req: Request, res: Response) {
-        const token = req.headers.authorization
+        const token = this.validateTokenHeader(req, res)
 
         if (!token) {
-            res.status(401).send({ error: "no token provided" })
-            return undefined
-        }
-
-        const parts = token.split(' ')
-
-        if (parts.length != 2) {
-            res.status(401).send({ error: "token malformmated" })
-            return undefined
-        }
-
-        if (parts[0] != 'Bearer') {
-            res.status(401).send({ error: "token malformmated" })
-            return undefined
+            return
         }
 
         try {
-            return jwt.verify(parts[1], process.env.ADMIN_SECRET) as any
+            return jwt.verify(token, process.env.ADMIN_SECRET) as any
         } catch (err) {
             if (err instanceof JsonWebTokenError) {
                 console.log(err)
                 res.status(401).send({ error: "token invalid" })
-                return undefined
+                return
             }
             console.log({ error: "token validation error", route: req.url })
             res.status(401).send({ error: "token validation error" })
-            return undefined
+            return
         }
     }
 }

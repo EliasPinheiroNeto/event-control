@@ -96,7 +96,7 @@ export default class UserController extends Controller {
                 email: body.email
             }
         })) {
-            res.status(409).send({ error: "User alread existis" })
+            res.status(409).send({ error: "User already existis" })
             return
         }
 
