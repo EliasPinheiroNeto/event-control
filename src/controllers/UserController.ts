@@ -90,6 +90,16 @@ export default class UserController extends Controller {
 
     private async createUser(req: Request, res: Response) {
         const body: CreateUserInput = req.body
+
+        if (await prisma.user.findUnique({
+            where: {
+                email: body.email
+            }
+        })) {
+            res.status(409).send({ error: "User alread existis" })
+            return
+        }
+
         body.password = bcrypt.hashSync(body.password, 10)
 
         const user = await prisma.user.create({
