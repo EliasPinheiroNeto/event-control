@@ -28,6 +28,10 @@ export default class AdminController extends Controller {
         this.router.post("/admins/login",
             [v.validate(adminLoginSchema)],
             this.adminLogin)
+
+        this.router.delete("/admins/:id/revoke",
+            [v.requireAdmin(), auth.authenticateKey],
+            this.revokeAdmin)
     }
 
     private async getAdmins(req: Request, res: Response) {
@@ -92,5 +96,17 @@ export default class AdminController extends Controller {
         admin.password = "-"
 
         res.send({ admin, token })
+    }
+
+    private async revokeAdmin(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+
+        await prisma.admin.delete({
+            where: {
+                idUser: id
+            }
+        })
+
+        res.send()
     }
 }

@@ -49,6 +49,30 @@ export class RequestValidator {
         }
     }
 
+    public requireAdmin() {
+        const checkId = this.checkId
+        return async function (req: Request, res: Response, next: NextFunction) {
+            const id = checkId(req, res)
+
+            if (!id) {
+                res.status(400).send()
+                return
+            }
+
+
+            const admin = await prisma.admin.findUnique({
+                where: { idUser: id }
+            })
+
+            if (!admin) {
+                res.status(404).send({ error: "User not found" })
+                return
+            }
+
+            next()
+        }
+    }
+
     // === Private methods ===
 
     private checkId(req: Request, res: Response) {
@@ -61,10 +85,12 @@ export class RequestValidator {
             return params.id
         } catch (err) {
             if (err instanceof ZodError) {
-                return res.status(400).send({ error: `unknow '${Object.values(req.params)}'` })
+                res.status(400).send({ error: `unknow '${Object.values(req.params)}'` })
+                return
             }
             console.log({ error: "params validation error", route: req.url })
-            return res.status(400)
+            res.status(400).send()
+            return
         }
     }
 }
