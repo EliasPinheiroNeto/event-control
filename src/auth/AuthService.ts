@@ -14,12 +14,12 @@ export default class AuthService {
     }
 
     public genenateAdminToken(payload: AdminToken) {
-        return jwt.sign(payload, process.env.SECRET, {
+        return jwt.sign(payload, process.env.ADMIN_SECRET, {
             expiresIn: AuthService.tokenValidity,
         })
     }
 
-    public authenticate() {
+    public authenticateUser() {
         const validateToken = this.validateToken
         return function (req: Request, res: Response, next: NextFunction) {
             const result = validateToken(req, res)
@@ -32,7 +32,7 @@ export default class AuthService {
         }
     }
 
-    public authenticateUser() {
+    public authenticateUserOwner() {
         const validateToken = this.validateToken
         return function (req: Request, res: Response, next: NextFunction) {
             const result = validateToken(req, res)
@@ -43,6 +43,36 @@ export default class AuthService {
 
             if (result.id != req.params.id) {
                 return res.status(401).send({ error: "token invalid" })
+            }
+
+            next()
+        }
+    }
+
+    public authenticateAdminOwner() {
+        const validateAdminToken = this.validateAdminToken
+        return function (req: Request, res: Response, next: NextFunction) {
+            const result = validateAdminToken(req, res)
+
+            if (!result) {
+                res.status(400).send()
+                return
+            }
+
+            //.... Test id
+
+            next()
+        }
+    }
+
+    public authenticateAdmin() {
+        const validateAdminToken = this.validateAdminToken
+        return function (req: Request, res: Response, next: NextFunction) {
+            const result = validateAdminToken(req, res)
+
+            if (!result) {
+                res.status(400).send()
+                return
             }
 
             next()
@@ -84,6 +114,40 @@ export default class AuthService {
 
         try {
             return jwt.verify(parts[1], process.env.SECRET) as any
+        } catch (err) {
+            if (err instanceof JsonWebTokenError) {
+                console.log(err)
+                res.status(401).send({ error: "token invalid" })
+                return undefined
+            }
+            console.log({ error: "token validation error", route: req.url })
+            res.status(401).send({ error: "token validation error" })
+            return undefined
+        }
+    }
+
+    private validateAdminToken(req: Request, res: Response) {
+        const token = req.headers.authorization
+
+        if (!token) {
+            res.status(401).send({ error: "no token provided" })
+            return undefined
+        }
+
+        const parts = token.split(' ')
+
+        if (parts.length != 2) {
+            res.status(401).send({ error: "token malformmated" })
+            return undefined
+        }
+
+        if (parts[0] != 'Bearer') {
+            res.status(401).send({ error: "token malformmated" })
+            return undefined
+        }
+
+        try {
+            return jwt.verify(parts[1], process.env.ADMIN_SECRET) as any
         } catch (err) {
             if (err instanceof JsonWebTokenError) {
                 console.log(err)

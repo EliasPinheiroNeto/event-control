@@ -18,7 +18,7 @@ export default class AdminController extends Controller {
         const auth = new AuthService()
 
         this.router.get("/admins",
-            [],
+            [auth.authenticateAdmin()],
             this.getAdmins)
 
         this.router.post("/admins/add",
