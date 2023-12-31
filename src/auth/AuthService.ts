@@ -24,9 +24,9 @@ export default class AuthService {
     // === Authentication methods ===
 
     public authenticateUser() {
-        const validateToken = this.validateUserToken
+        const validateUserToken = this.validateUserToken()
         return function (req: Request, res: Response, next: NextFunction) {
-            const result = validateToken(req, res)
+            const result = validateUserToken(req, res)
 
             if (!result) {
                 return res.status(400).send()
@@ -37,7 +37,7 @@ export default class AuthService {
     }
 
     public authenticateUserOwner() {
-        const validateUserToken = this.validateUserToken
+        const validateUserToken = this.validateUserToken()
         return function (req: Request, res: Response, next: NextFunction) {
             const result = validateUserToken(req, res)
 
@@ -54,7 +54,7 @@ export default class AuthService {
     }
 
     public authenticateAdmin() {
-        const validateAdminToken = this.validateAdminToken
+        const validateAdminToken = this.validateAdminToken()
         return function (req: Request, res: Response, next: NextFunction) {
             const result = validateAdminToken(req, res)
 
@@ -62,13 +62,15 @@ export default class AuthService {
                 res.status(400).send()
                 return
             }
+
+            req.body.idCreator = result.id
 
             next()
         }
     }
 
     public authenticateAdminOwner() {
-        const validateAdminToken = this.validateAdminToken
+        const validateAdminToken = this.validateAdminToken()
         return function (req: Request, res: Response, next: NextFunction) {
             const result = validateAdminToken(req, res)
 
@@ -77,7 +79,9 @@ export default class AuthService {
                 return
             }
 
-            //.... Test id
+            // check id
+
+            req.body.idCreator = result.id
 
             next()
         }
@@ -119,45 +123,52 @@ export default class AuthService {
         return parts[1]
     }
 
-    private validateUserToken(req: Request, res: Response) {
-        const token = this.validateTokenHeader(req, res)
+    private validateUserToken() {
+        const validateTokenHeader = this.validateTokenHeader
+        return function (req: Request, res: Response) {
+            const token = validateTokenHeader(req, res)
 
-        if (!token) {
-            return
-        }
-
-        try {
-            return jwt.verify(token, process.env.SECRET) as any
-        } catch (err) {
-            if (err instanceof JsonWebTokenError) {
-                console.log(err)
-                res.status(401).send({ error: "token invalid" })
+            if (!token) {
                 return
             }
-            console.log({ error: "token validation error", route: req.url })
-            res.status(401).send({ error: "token validation error" })
-            return
+
+            try {
+                return jwt.verify(token, process.env.SECRET) as any
+            } catch (err) {
+                if (err instanceof JsonWebTokenError) {
+                    console.log(err)
+                    res.status(401).send({ error: "token invalid" })
+                    return
+                }
+                console.log({ error: "token validation error", route: req.url })
+                res.status(401).send({ error: "token validation error" })
+                return
+            }
         }
+
     }
 
-    private validateAdminToken(req: Request, res: Response) {
-        const token = this.validateTokenHeader(req, res)
+    private validateAdminToken() {
+        const validateTokenHeader = this.validateTokenHeader
+        return function (req: Request, res: Response) {
+            const token = validateTokenHeader(req, res)
 
-        if (!token) {
-            return
-        }
-
-        try {
-            return jwt.verify(token, process.env.ADMIN_SECRET) as any
-        } catch (err) {
-            if (err instanceof JsonWebTokenError) {
-                console.log(err)
-                res.status(401).send({ error: "token invalid" })
+            if (!token) {
                 return
             }
-            console.log({ error: "token validation error", route: req.url })
-            res.status(401).send({ error: "token validation error" })
-            return
+
+            try {
+                return jwt.verify(token, process.env.ADMIN_SECRET) as any
+            } catch (err) {
+                if (err instanceof JsonWebTokenError) {
+                    console.log(err)
+                    res.status(401).send({ error: "token invalid" })
+                    return
+                }
+                console.log({ error: "token validation error", route: req.url })
+                res.status(401).send({ error: "token validation error" })
+                return
+            }
         }
     }
 }
