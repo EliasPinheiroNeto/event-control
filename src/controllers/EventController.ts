@@ -31,6 +31,10 @@ export default class EventController extends Controller {
         this.router.patch("/events/:id/edit",
             [v.validate(updateEventSchema), v.requireEvent(), auth.authenticateAdminEventOwner()],
             this.updateEvent)
+
+        this.router.delete("/events/:id/delete",
+            [v.requireEvent(), auth.authenticateAdminEventOwner()],
+            this.deleteEvent)
     }
 
     private async getEvents(req: Request, res: Response) {
@@ -93,5 +97,15 @@ export default class EventController extends Controller {
         })
 
         res.send(result)
+    }
+
+    private async deleteEvent(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+
+        const event = await prisma.event.delete({
+            where: { id }
+        })
+
+        res.send(event)
     }
 }
