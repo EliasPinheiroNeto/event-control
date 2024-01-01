@@ -138,6 +138,16 @@ export default class EventController extends Controller {
         const id = Number.parseInt(req.params.id)
         const body: AddUserToEventInput = req.body
 
+        if (await prisma.userEvent.findFirst({
+            where: {
+                idEvent: id,
+                idUser: body.idUser
+            }
+        })) {
+            res.status(409).send({ error: "user already on event" })
+            return
+        }
+
         const userEvent = await prisma.userEvent.create({
             data: {
                 idEvent: id,
