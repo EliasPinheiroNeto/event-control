@@ -17,7 +17,6 @@ model User {
   email      String @unique @db.VarChar(150)
   password   String @db.VarChar(150)
 
-  Event     Event[]
   UserEvent UserEvent[]
   Admin     Admin?
 
@@ -29,9 +28,9 @@ model Event {
   name      String   @db.VarChar(100)
   capacity  Int
   tickets   Int
-  eventDate DateTime @default(now()) @map("event_date")
+  eventDate DateTime @map("event_date")
   idCreator Int      @map("id_creator")
-  User      User     @relation(fields: [idCreator], references: [id])
+  Creator   Admin    @relation(fields: [idCreator], references: [idUser], onDelete: NoAction)
 
   UserEvent UserEvent[]
 
@@ -40,9 +39,9 @@ model Event {
 
 model UserEvent {
   idUser  Int
-  User    User  @relation(fields: [idUser], references: [id])
+  User    User  @relation(fields: [idUser], references: [id], onDelete: Cascade)
   idEvent Int
-  Event   Event @relation(fields: [idEvent], references: [id])
+  Event   Event @relation(fields: [idEvent], references: [id], onDelete: Cascade)
 
   @@id([idUser, idEvent])
   @@map("tbl_user_event")
@@ -50,7 +49,9 @@ model UserEvent {
 
 model Admin {
   idUser Int  @unique @map("id_user")
-  User   User @relation(fields: [idUser], references: [id])
+  User   User @relation(fields: [idUser], references: [id], onDelete: Cascade)
+
+  Event Event[]
 
   @@map("tbl_admin")
 }

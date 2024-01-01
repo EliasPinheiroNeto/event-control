@@ -4,7 +4,7 @@ import prisma from "../util/prismaClient";
 import Controller from "./Controller";
 import { RequestValidator } from "../middlewares/RequestValidator";
 import AuthService from "../auth/AuthService";
-import { CreateEventInput, UpdateEventInput, createEventSchema, updateEventSchema } from "../schema/event.schema";
+import { AddUserToEventInput, CreateEventInput, UpdateEventInput, createEventSchema, updateEventSchema } from "../schema/event.schema";
 
 export default class EventController extends Controller {
     constructor() {
@@ -35,6 +35,14 @@ export default class EventController extends Controller {
         this.router.delete("/events/:id/delete",
             [v.requireEvent(), auth.authenticateAdminEventOwner()],
             this.deleteEvent)
+
+        this.router.get("/events/:id/users",
+            [v.requireEvent(), auth.authenticateAdmin()],
+            this.getUsersByEvent)
+
+        this.router.post("/events/:id/users/add",
+            [v.requireEvent(), auth.authenticateUser()],
+            this.addUserToEvent)
     }
 
     private async getEvents(req: Request, res: Response) {
@@ -107,5 +115,42 @@ export default class EventController extends Controller {
         })
 
         res.send(event)
+    }
+
+    private async getUsersByEvent(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+
+        const users = await prisma.user.findMany({
+            where: {
+                UserEvent: {
+                    some: {
+                        idEvent: id
+                    }
+                }
+            },
+            select: { id: true, firstName: true, secondName: true, email: true }
+        })
+
+        res.send(users)
+    }
+
+    private async addUserToEvent(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+        const body: AddUserToEventInput = req.body
+
+        const userEvent = await prisma.userEvent.create({
+            data: {
+                idEvent: id,
+                idUser: body.idUser
+            },
+            select: {
+                Event: true,
+                User: {
+                    select: { id: true, firstName: true, secondName: true, email: true }
+                }
+            }
+        })
+
+        res.send(userEvent)
     }
 }

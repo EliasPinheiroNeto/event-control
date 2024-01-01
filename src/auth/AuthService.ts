@@ -33,6 +33,8 @@ export default class AuthService {
                 return res.status(400).send()
             }
 
+            req.body.idUser = result.id
+
             next()
         }
     }
@@ -49,6 +51,8 @@ export default class AuthService {
             if (result.id != req.params.id) {
                 return res.status(401).send({ error: "token invalid" })
             }
+
+            req.body.idUser = result.id
 
             next()
         }
