@@ -3,6 +3,7 @@ import jwt, { JsonWebTokenError } from 'jsonwebtoken'
 
 import { UserToken } from "../schema/user.schema";
 import { AdminToken } from "../schema/admin.schema";
+import prisma from "../util/prismaClient";
 
 export default class AuthService {
     private static tokenValidity = "1h"
@@ -58,6 +59,8 @@ export default class AuthService {
         return function (req: Request, res: Response, next: NextFunction) {
             const result = validateAdminToken(req, res)
 
+            console.log(req.body)
+
             if (!result) {
                 res.status(400).send()
                 return
@@ -79,9 +82,38 @@ export default class AuthService {
                 return
             }
 
-            // check id
+            if (req.params.id != result.id) {
+                res.status(401).send({ error: "token invalid" })
+                return
+            }
 
             req.body.idCreator = result.id
+
+            next()
+        }
+    }
+
+    public authenticateAdminEventOwner() {
+        const validateAdminToken = this.validateAdminToken()
+        return async function (req: Request, res: Response, next: NextFunction) {
+            const result = validateAdminToken(req, res)
+            const id = Number.parseInt(req.params.id)
+
+            if (!result) {
+                res.status(400).send()
+                return
+            }
+
+            req.body.idCreator = result.id
+
+            const event = await prisma.event.findUnique({
+                where: { id }
+            })
+
+            if (event?.idCreator != result.id) {
+                res.status(401).send({ error: "token invalid" })
+                return
+            }
 
             next()
         }

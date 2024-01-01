@@ -63,6 +63,15 @@ export default class AdminController extends Controller {
             return
         }
 
+        const user = await prisma.user.findUnique({
+            where: { id: body.id }
+        })
+
+        if (!user) {
+            res.status(404).send({ error: "user not found to get admin" })
+            return
+        }
+
         const admin = await prisma.admin.create({
             data: {
                 idUser: body.id

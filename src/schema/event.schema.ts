@@ -6,4 +6,11 @@ export const createEventSchema = z.object({
     eventDate: z.coerce.date().min(new Date())
 })
 
+export const updateEventSchema = z.object({
+    name: z.string().min(3).max(200).optional(),
+    capacity: z.number().min(1).optional(),
+    eventDate: z.coerce.date().min(new Date()).optional()
+}).strict()
+
 export type CreateEventInput = z.infer<typeof createEventSchema> & { idCreator: number }
+export type UpdateEventInput = z.infer<typeof updateEventSchema> & { idCreator: number }
