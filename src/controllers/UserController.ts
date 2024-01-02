@@ -27,7 +27,7 @@ export default class UserController extends Controller {
             [v.requireUser(), auth.authenticateUserOwner()],
             this.deleteUser)
         this.router.patch("/users/:id/edit",
-            [v.requireUser(), auth.authenticateUserOwner(), v.validate(updateUserSchema)],
+            [v.validate(updateUserSchema), v.requireUser(), auth.authenticateUserOwner()],
             this.updateUser)
         this.router.post("/users/new",
             [v.validate(createUserSchema)],

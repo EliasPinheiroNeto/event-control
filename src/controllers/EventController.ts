@@ -4,7 +4,7 @@ import prisma from "../util/prismaClient";
 import Controller from "./Controller";
 import { RequestValidator } from "../middlewares/RequestValidator";
 import AuthService from "../auth/AuthService";
-import { AddUserToEventInput, CreateEventInput, UpdateEventInput, createEventSchema, updateEventSchema } from "../schema/event.schema";
+import { AddUserToEventInput, CreateEventInput, RemoveUserFromEventInput, UpdateEventInput, createEventSchema, updateEventSchema } from "../schema/event.schema";
 
 export default class EventController extends Controller {
     constructor() {
@@ -43,6 +43,10 @@ export default class EventController extends Controller {
         this.router.post("/events/:id/users/add",
             [v.requireEvent(), auth.authenticateUser()],
             this.addUserToEvent)
+
+        this.router.delete("/events/:id/users/remove",
+            [v.requireEvent(), auth.authenticateUser()],
+            this.removeUserFromEvent)
     }
 
     private async getEvents(req: Request, res: Response) {
@@ -157,6 +161,34 @@ export default class EventController extends Controller {
                 Event: true,
                 User: {
                     select: { id: true, firstName: true, secondName: true, email: true }
+                }
+            }
+        })
+
+        res.send(userEvent)
+    }
+
+    private async removeUserFromEvent(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+        const body: RemoveUserFromEventInput = req.body
+
+        if (!await prisma.userEvent.findUnique({
+            where: {
+                idUser_idEvent: {
+                    idEvent: id,
+                    idUser: body.idUser
+                }
+            }
+        })) {
+            res.status(404).send({ error: "user is not on event" })
+            return
+        }
+
+        const userEvent = await prisma.userEvent.delete({
+            where: {
+                idUser_idEvent: {
+                    idEvent: id,
+                    idUser: body.idUser
                 }
             }
         })

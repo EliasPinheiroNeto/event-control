@@ -15,3 +15,4 @@ export const updateEventSchema = z.object({
 export type CreateEventInput = z.infer<typeof createEventSchema> & { idCreator: number }
 export type UpdateEventInput = z.infer<typeof updateEventSchema> & { idCreator: number }
 export type AddUserToEventInput = { idUser: number }
+export type RemoveUserFromEventInput = { idUser: number }
