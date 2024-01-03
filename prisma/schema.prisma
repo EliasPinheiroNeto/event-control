@@ -39,9 +39,11 @@ model Event {
 
 model UserEvent {
   idUser  Int
-  User    User  @relation(fields: [idUser], references: [id], onDelete: Cascade)
+  User    User    @relation(fields: [idUser], references: [id], onDelete: Cascade)
   idEvent Int
-  Event   Event @relation(fields: [idEvent], references: [id], onDelete: Cascade)
+  Event   Event   @relation(fields: [idEvent], references: [id], onDelete: Cascade)
+  token   String  @db.LongText
+  checkIn Boolean @default(false) @map("check_in")
 
   @@id([idUser, idEvent])
   @@map("tbl_user_event")

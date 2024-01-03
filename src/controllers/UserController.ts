@@ -96,7 +96,7 @@ export default class UserController extends Controller {
                 email: body.email
             }
         })) {
-            res.status(409).send({ error: "User already existis" })
+            res.status(409).send({ error: "Email already existis" })
             return
         }
 
@@ -107,7 +107,7 @@ export default class UserController extends Controller {
             select: { id: true, firstName: true, secondName: true, email: true }
         })
 
-        res.status(201).send({ user })
+        res.status(201).send(user)
     }
 
     private async userLogin(req: Request, res: Response) {

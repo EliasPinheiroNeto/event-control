@@ -1,12 +1,9 @@
 import 'dotenv/config'
-import jwt from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
+import crypto from 'node:crypto'
 
-// console.log(crypto.randomInt(268435456, 4294967295).toString(16))
-// console.log(crypto.createSign("Elias"))
-
-const token = jwt.sign({ userId: 17, eventId: 2 }, process.env.SECRET, {
-    algorithm: 'none',
-})
-
-// console.log(Buffer.from("302 54" + Math.floor(new Date().getMinutes())).toString("base64url"))
+const token = bcrypt.hashSync("15, 4", 1)
 console.log(token)
+
+const otherToken = crypto.randomBytes(32).toString("hex")
+console.log(otherToken)

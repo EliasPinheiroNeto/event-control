@@ -14,7 +14,8 @@ export const updateEventSchema = z.object({
 
 export const userEventTokenSchema = z.object({
     idUser: z.coerce.number(),
-    idEvent: z.coerce.number()
+    idEvent: z.coerce.number(),
+    token: z.string()
 })
 
 export type CreateEventInput = z.infer<typeof createEventSchema> & { idCreator: number }
@@ -22,4 +23,5 @@ export type UpdateEventInput = z.infer<typeof updateEventSchema> & { idCreator: 
 export type AddUserToEventInput = { idUser: number }
 export type RemoveUserFromEventInput = { idUser: number }
 export type GetUserQRCodeInput = { idUser: number }
+export type CheckInUserInput = z.infer<typeof userEventTokenSchema> & { idCreator: number }
 export type UserEventToken = z.infer<typeof userEventTokenSchema>

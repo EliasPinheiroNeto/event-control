@@ -104,7 +104,7 @@ export default class AdminController extends Controller {
             return res.status(400).send({ error: "email or password invalid" })
         }
 
-        const token = auth.genenateAdminToken({ id: admin.id, email: admin.email, firstName: admin.firstName })
+        const token = auth.generateAdminToken({ id: admin.id, email: admin.email, firstName: admin.firstName })
 
         admin.password = "-"
 

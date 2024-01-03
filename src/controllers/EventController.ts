@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
 import qrcode from 'qrcode'
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
+import crypto from 'node:crypto'
 
 import prisma from "../util/prismaClient";
 import Controller from "./Controller";
 import { RequestValidator } from "../middlewares/RequestValidator";
 import AuthService from "../auth/AuthService";
-import { AddUserToEventInput, CreateEventInput, GetUserQRCodeInput, RemoveUserFromEventInput, UpdateEventInput, createEventSchema, updateEventSchema } from "../schema/event.schema";
+import { AddUserToEventInput, CheckInUserInput, CreateEventInput, GetUserQRCodeInput, RemoveUserFromEventInput, UpdateEventInput, createEventSchema, updateEventSchema, userEventTokenSchema } from "../schema/event.schema";
 
 export default class EventController extends Controller {
     constructor() {
@@ -50,7 +53,7 @@ export default class EventController extends Controller {
             this.removeUserFromEvent)
 
         this.router.patch("/events/:id/users/check-in",
-            [],
+            [v.validate(userEventTokenSchema), v.requireEvent(), auth.authenticateAdmin()],
             this.checkInUser)
 
         this.router.get("/events/:id/users/qrcode",
@@ -164,7 +167,8 @@ export default class EventController extends Controller {
         const userEvent = await prisma.userEvent.create({
             data: {
                 idEvent: id,
-                idUser: body.idUser
+                idUser: body.idUser,
+                token: crypto.randomBytes(32).toString("hex")
             },
             select: {
                 Event: true,
@@ -207,19 +211,76 @@ export default class EventController extends Controller {
 
     private async checkInUser(req: Request, res: Response) {
         const id = Number.parseInt(req.params.id)
+        const body: CheckInUserInput = req.body
 
+        if (body.idEvent != id) {
+            res.status(400).send({ error: "Invalid event" })
+            return
+        }
 
+        const userEvent = await prisma.userEvent.findUnique({
+            where: {
+                idUser_idEvent: {
+                    idEvent: body.idEvent,
+                    idUser: body.idUser
+                }
+            }
+        })
+
+        if (!userEvent) {
+            res.status(404).send()
+            return
+        }
+
+        if (userEvent.checkIn) {
+            res.status(400).send({ error: "QRCode already used" })
+            return
+        }
+
+        if (body.token != userEvent.token) {
+            res.status(401).send({ error: "invalid event token" })
+            return
+        }
+
+        await prisma.userEvent.update({
+            where: {
+                idUser_idEvent: {
+                    idEvent: body.idEvent,
+                    idUser: body.idUser
+                }
+            },
+            data: {
+                checkIn: true
+            }
+        })
+        res.send({ status: "ok" })
     }
 
     private async getUserQRCode(req: Request, res: Response) {
         const id = Number.parseInt(req.params.id)
         const body: GetUserQRCodeInput = req.body
 
-        const auth = new AuthService()
+        const userEvent = await prisma.userEvent.findUnique({
+            where: {
+                idUser_idEvent: {
+                    idEvent: id,
+                    idUser: body.idUser
+                }
+            }
+        })
 
-        const token = auth.generateUserEventToken({ idEvent: id, idUser: body.idUser })
-        qrcode.toDataURL(token, { type: "image/jpeg" }).then((url) => {
-            res.send({ image: url })
+        if (!userEvent) {
+            res.status(404).send({ error: "user is not on event" })
+            return
+        }
+
+        if (userEvent.checkIn) {
+            res.status(400).send({ error: "QRCode already used" })
+            return
+        }
+
+        qrcode.toDataURL(JSON.stringify(userEvent), { type: "image/jpeg" }).then((url) => {
+            res.send({ image: url, json: JSON.stringify(userEvent) })
         }).catch(err => {
             res.status(500).send()
         })

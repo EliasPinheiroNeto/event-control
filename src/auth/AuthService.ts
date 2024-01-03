@@ -4,7 +4,7 @@ import jwt, { JsonWebTokenError } from 'jsonwebtoken'
 import { UserToken } from "../schema/user.schema";
 import { AdminToken } from "../schema/admin.schema";
 import prisma from "../util/prismaClient";
-import { UserEventToken } from "../schema/event.schema";
+import { UserEventToken, userEventTokenSchema } from "../schema/event.schema";
 
 export default class AuthService {
     private static tokenValidity = "1h"
@@ -17,7 +17,7 @@ export default class AuthService {
         })
     }
 
-    public genenateAdminToken(payload: AdminToken) {
+    public generateAdminToken(payload: AdminToken) {
         return jwt.sign(payload, process.env.ADMIN_SECRET, {
             expiresIn: AuthService.tokenValidity,
         })
@@ -25,7 +25,7 @@ export default class AuthService {
 
     public generateUserEventToken(payload: UserEventToken) {
         return jwt.sign(payload, process.env.SECRET, {
-            algorithm: "none"
+            algorithm: 'none',
         })
     }
 
@@ -69,8 +69,6 @@ export default class AuthService {
         const validateAdminToken = this.validateAdminToken()
         return function (req: Request, res: Response, next: NextFunction) {
             const result = validateAdminToken(req, res)
-
-            console.log(req.body)
 
             if (!result) {
                 res.status(400).send()
