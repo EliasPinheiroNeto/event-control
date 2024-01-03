@@ -4,6 +4,7 @@ import jwt, { JsonWebTokenError } from 'jsonwebtoken'
 import { UserToken } from "../schema/user.schema";
 import { AdminToken } from "../schema/admin.schema";
 import prisma from "../util/prismaClient";
+import { UserEventToken } from "../schema/event.schema";
 
 export default class AuthService {
     private static tokenValidity = "1h"
@@ -19,6 +20,12 @@ export default class AuthService {
     public genenateAdminToken(payload: AdminToken) {
         return jwt.sign(payload, process.env.ADMIN_SECRET, {
             expiresIn: AuthService.tokenValidity,
+        })
+    }
+
+    public generateUserEventToken(payload: UserEventToken) {
+        return jwt.sign(payload, process.env.SECRET, {
+            algorithm: "none"
         })
     }
 

@@ -1,13 +1,12 @@
-import { z } from "zod";
+import 'dotenv/config'
+import jwt from 'jsonwebtoken'
 
-const dataSchema = z.object({
-    date: z.coerce.date().min(new Date()).optional()
+// console.log(crypto.randomInt(268435456, 4294967295).toString(16))
+// console.log(crypto.createSign("Elias"))
+
+const token = jwt.sign({ userId: 17, eventId: 2 }, process.env.SECRET, {
+    algorithm: 'none',
 })
 
-try {
-    console.log(dataSchema.parse({
-        date: "01/01/2024"
-    }))
-} catch (err) {
-    console.log("erro")
-}
+// console.log(Buffer.from("302 54" + Math.floor(new Date().getMinutes())).toString("base64url"))
+console.log(token)

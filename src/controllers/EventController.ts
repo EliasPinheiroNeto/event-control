@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
+import qrcode from 'qrcode'
 
 import prisma from "../util/prismaClient";
 import Controller from "./Controller";
 import { RequestValidator } from "../middlewares/RequestValidator";
 import AuthService from "../auth/AuthService";
-import { AddUserToEventInput, CreateEventInput, RemoveUserFromEventInput, UpdateEventInput, createEventSchema, updateEventSchema } from "../schema/event.schema";
+import { AddUserToEventInput, CreateEventInput, GetUserQRCodeInput, RemoveUserFromEventInput, UpdateEventInput, createEventSchema, updateEventSchema } from "../schema/event.schema";
 
 export default class EventController extends Controller {
     constructor() {
@@ -47,6 +48,14 @@ export default class EventController extends Controller {
         this.router.delete("/events/:id/users/remove",
             [v.requireEvent(), auth.authenticateUser()],
             this.removeUserFromEvent)
+
+        this.router.patch("/events/:id/users/check-in",
+            [],
+            this.checkInUser)
+
+        this.router.get("/events/:id/users/qrcode",
+            [v.requireEvent(), auth.authenticateUser()],
+            this.getUserQRCode)
     }
 
     private async getEvents(req: Request, res: Response) {
@@ -194,5 +203,25 @@ export default class EventController extends Controller {
         })
 
         res.send(userEvent)
+    }
+
+    private async checkInUser(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+
+
+    }
+
+    private async getUserQRCode(req: Request, res: Response) {
+        const id = Number.parseInt(req.params.id)
+        const body: GetUserQRCodeInput = req.body
+
+        const auth = new AuthService()
+
+        const token = auth.generateUserEventToken({ idEvent: id, idUser: body.idUser })
+        qrcode.toDataURL(token, { type: "image/jpeg" }).then((url) => {
+            res.send({ image: url })
+        }).catch(err => {
+            res.status(500).send()
+        })
     }
 }
