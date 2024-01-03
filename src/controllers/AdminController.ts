@@ -54,15 +54,6 @@ export default class AdminController extends Controller {
     private async createAdmin(req: Request, res: Response) {
         const body: CreateAdminInput = req.body
 
-        if (await prisma.admin.findFirst({
-            where: {
-                idUser: body.id
-            }
-        })) {
-            res.status(409).send({ error: "user is already admin" })
-            return
-        }
-
         const user = await prisma.user.findUnique({
             where: { id: body.id }
         })
@@ -81,6 +72,9 @@ export default class AdminController extends Controller {
                     select: { id: true, firstName: true, secondName: true, email: true }
                 }
             }
+        }).catch(err => {
+            res.status(409).send({ error: "user is already admin" })
+            return
         })
 
         res.status(201).send(admin)
@@ -106,9 +100,9 @@ export default class AdminController extends Controller {
 
         const token = auth.generateAdminToken({ id: admin.id, email: admin.email, firstName: admin.firstName })
 
-        admin.password = "-"
+        const { password, ...result } = admin
 
-        res.send({ admin, token })
+        res.send({ result, token })
     }
 
     private async getAdminById(req: Request, res: Response) {

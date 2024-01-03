@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
 import qrcode from 'qrcode'
-import jwt from 'jsonwebtoken'
-import bcrypt from 'bcrypt'
 import crypto from 'node:crypto'
 
 import prisma from "../util/prismaClient";
@@ -60,6 +58,8 @@ export default class EventController extends Controller {
             [v.requireEvent(), auth.authenticateUser()],
             this.getUserQRCode)
     }
+
+    // === Requesições de Evento ===
 
     private async getEvents(req: Request, res: Response) {
         const events = await prisma.event.findMany()
@@ -133,6 +133,8 @@ export default class EventController extends Controller {
         res.send(event)
     }
 
+    // === Requisições de Usuários no evento ===
+
     private async getUsersByEvent(req: Request, res: Response) {
         const id = Number.parseInt(req.params.id)
 
@@ -154,16 +156,6 @@ export default class EventController extends Controller {
         const id = Number.parseInt(req.params.id)
         const body: AddUserToEventInput = req.body
 
-        if (await prisma.userEvent.findFirst({
-            where: {
-                idEvent: id,
-                idUser: body.idUser
-            }
-        })) {
-            res.status(409).send({ error: "user already on event" })
-            return
-        }
-
         const userEvent = await prisma.userEvent.create({
             data: {
                 idEvent: id,
@@ -176,6 +168,9 @@ export default class EventController extends Controller {
                     select: { id: true, firstName: true, secondName: true, email: true }
                 }
             }
+        }).catch(err => {
+            res.status(409).send({ error: "user already on event" })
+            return
         })
 
         res.send(userEvent)
@@ -185,18 +180,6 @@ export default class EventController extends Controller {
         const id = Number.parseInt(req.params.id)
         const body: RemoveUserFromEventInput = req.body
 
-        if (!await prisma.userEvent.findUnique({
-            where: {
-                idUser_idEvent: {
-                    idEvent: id,
-                    idUser: body.idUser
-                }
-            }
-        })) {
-            res.status(404).send({ error: "user is not on event" })
-            return
-        }
-
         const userEvent = await prisma.userEvent.delete({
             where: {
                 idUser_idEvent: {
@@ -204,6 +187,9 @@ export default class EventController extends Controller {
                     idUser: body.idUser
                 }
             }
+        }).catch(err => {
+            res.status(404).send({ error: "user is not on event" })
+            return
         })
 
         res.send(userEvent)
@@ -253,7 +239,8 @@ export default class EventController extends Controller {
                 checkIn: true
             }
         })
-        res.send({ status: "ok" })
+
+        res.send()
     }
 
     private async getUserQRCode(req: Request, res: Response) {

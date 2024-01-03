@@ -10,11 +10,12 @@ export class RequestValidator {
                 next()
             } catch (err) {
                 if (err instanceof ZodError) {
-                    return res.status(400).send(err.flatten())
+                    res.status(400).send(err.flatten())
+                    return
                 }
 
                 console.log({ error: "body validation error", route: req.url })
-                return res.status(400)
+                res.status(400).send()
             }
         }
     }
@@ -41,7 +42,8 @@ export class RequestValidator {
                 })
 
                 if (!user) {
-                    return res.status(404).send({ error: "User not found" })
+                    res.status(404).send({ error: "User not found" })
+                    return
                 }
 
                 next()

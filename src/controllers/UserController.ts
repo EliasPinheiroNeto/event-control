@@ -91,20 +91,14 @@ export default class UserController extends Controller {
     private async createUser(req: Request, res: Response) {
         const body: CreateUserInput = req.body
 
-        if (await prisma.user.findUnique({
-            where: {
-                email: body.email
-            }
-        })) {
-            res.status(409).send({ error: "Email already existis" })
-            return
-        }
-
         body.password = bcrypt.hashSync(body.password, 10)
 
         const user = await prisma.user.create({
             data: body,
             select: { id: true, firstName: true, secondName: true, email: true }
+        }).catch(err => {
+            res.status(409).send({ error: "Email already existis" })
+            return
         })
 
         res.status(201).send(user)
@@ -126,8 +120,8 @@ export default class UserController extends Controller {
 
         const token = auth.generateUserToken({ id: user.id, email: user.email, firstName: user.firstName })
 
-        user.password = "-"
+        const { password, ...result } = user
 
-        res.send({ user, token })
+        res.send({ result, token })
     }
 }
